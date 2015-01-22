@@ -40,8 +40,8 @@ Let's take a look at a simple plot of the training data, specifically at the fre
     text(x=bplt, y=summary_classe+300, cex=0.6,labels=as.character(summary_classe), xpd=TRUE)    
 ```
 
-### Accuracy in the Training Data
-We note from the results shown below that a random forest model yields 88.5% accuracy in the sample.
+### Accuracy and Out-of-sample Error
+We note from the results shown below that a random forest model yields 88.5% accuracy in the sample. One might expect that the expected out-of-sample-error will be similar if the variables in the sample are _iid_ (independent and identically distributed).
 
 ```{r warning=FALSE, error=FALSE, message=FALSE}
     library(caret)
@@ -50,8 +50,8 @@ We note from the results shown below that a random forest model yields 88.5% acc
 ```
 
 ### Cross Validation
-We next use the resutls from the sample training set to assess accuracy in the overall training set. We report statistics below that include a cross validation table with 95.64% accuracy. We also show statistics by class for each Classe variable (A-E). The balanced accuracy values range from 0.9488 (Classe B) to 0.9854 (Classe A).
-```{r}
+We next use the results from the sample training set to assess accuracy in the overall training set. We report statistics below that include a cross validation table with 95.64% accuracy. We also show statistics by class for each Classe variable (A-E). The balanced accuracy values range from 0.9488 (Classe B) to 0.9854 (Classe A). We can manually compute the accuracy by summing along the main diagonal of the cross validation table and then dividing by the total number of observations in the table. This value is automatically reporting by the confusionMatrix function.
+```{r warning=FALSE}
     pred_Training <- predict(modFit, Training)
     confusionMatrix(pred_Training,Training$classe)
 ```
