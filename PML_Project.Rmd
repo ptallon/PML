@@ -1,0 +1,74 @@
+```{r set-options, echo=FALSE, cache=TRUE, warning=FALSE}
+    options(width=600)
+    library(caret)
+    library(plyr)
+    library(lattice)
+    library(ggplot2)
+```
+
+## Assignment (Coursera: Practical Machine Learning)
+
+### Executive Summary
+In this report, we analyze training data from a dataset created by Velloso et al. (2013) in order to predict a Classe variable in a testing set of 20 rows. The data are compiled from a small number of individuals who wore personal technologies while undergoing a set of physical exercises. Using a random forest model, we were able to obtain an accuracy rating of 95.55% in the training set.
+
+```{r}
+    Training <- read.csv("pml-training.csv",na.strings=c("", "NA"),sep=",",header=TRUE)
+    dim(Training)
+    str(Training[1:7])
+```
+
+### Download Training Data
+There are 19622 observations across 160 columns in the training data. Some of the columns in this file contain blanks and so our first step is to isolate just those variables that we want to use in the initial training exercise. Some columns contain blanks and so these can be discarded. Columns 1-7 contain respondent and time specific information which is not pertinent to our analysis. In light of possible processing limitations with a model containing close to 20000 observations, I opted to train my model on a subsample of the 19622 observations. Specifically, I opted to sample 7% (or 1 in 14 rows) of the training data as this would yield just under 1500 observations (the actual number of observations in the sample is 1402). This sample is the equivalent of a stratified sample since we draw from the training dataset proportional to the number of observations in each classe variable.
+
+```{r}
+    Training <- Training[, colSums(is.na(Training)) == 0] 
+    Training <- Training[, 8:dim(Training)[2]] 
+    mySample <- subset(Training ,c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+```
+
+### Bar Chart Plot
+Let's take a look at a simple plot of the training data, specifically at the frequency count of the Classe variable since that is the focus of our model. We show the counts for the overall training data and for the 7% sample taken from that data.
+```{r}
+    summary_Trainclasse <- data.frame(summary(Training$classe))
+    summary_Sampclasse  <- data.frame(summary(mySample$classe))
+    summary_classe <- t(cbind(summary_Trainclasse,summary_Sampclasse))
+    bplt <- barplot(as.matrix(summary_classe), 
+              main="Count of Classe Variables (Training and Sample Files)", 
+              xlab="Classe Variables (A - E)", ylab="Frequency Count",
+              col=c("lightskyblue","black"), beside=TRUE, horiz=FALSE)
+    legend("topright", cex=0.7,fill=c("lightskyblue","black"),legend = c("Training File", "Training Sample (1 in 14)"))
+    text(x=bplt, y=summary_classe+300, cex=0.6,labels=as.character(summary_classe), xpd=TRUE)    
+```
+
+### Accuracy in the Training Data
+We note from the results shown below that a random forest model yields 88.5% accuracy in the sample.
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+    library(caret)
+    modFit <- train(classe ~ ., method="rf", data=mySample, verbose=FALSE)
+    modFit$results    
+```
+
+### Cross Validation
+We next use the resutls from the sample training set to assess accuracy in the overall training set. We report statistics below that include a cross validation table with 95.64% accuracy. We also show statistics by class for each Classe variable (A-E). The balanced accuracy values range from 0.9488 (Classe B) to 0.9854 (Classe A).
+```{r}
+    pred_Training <- predict(modFit, Training)
+    confusionMatrix(pred_Training,Training$classe)
+```
+
+### Testing Prediction
+We now turn to the testing phase of the analysis where we use the results from the training model on the sample data to predict the Classe variable for 20 rows in the testing dataset. We first read in the testing data and extract the relevant non-empty columns while also omitting the seven columns on the left side of the table that contain identifying information that is not pertinent to our prediction analysis. We shown the predicted results below for each of our 20 rows.
+
+```{r warning=FALSE, message=FALSE}
+    Testing <-  read.csv("pml-testing.csv",na.strings=c("", "NA"),sep=",",header=TRUE)
+    Testing <-  Testing[, colSums(is.na(Testing)) == 0] 
+    Testing <-  Testing[, 8:dim(Testing)[2]-1] 
+    dim(Testing)
+
+    pred_Test <- data.frame(c(1:20),predict(modFit, Testing))
+    colnames(pred_Test) <- c("Problem_ID","Pred_Classe")
+    print(pred_Test, row.names=FALSE,justify="center")
+```
+
+### Conclusion
+Fortunately, all 20 predicted Classe variables were found to be accurate when submitted to the Coursera grading system for this course. Additional testing may be needed to further refine the model since the training data is only based on data collected from a small set of individuals. There may be other variables that are currently missing from the training set such as age, gender, fitness level, height, and weight (BMI) that may have a bearing on the exercise outcomes.
